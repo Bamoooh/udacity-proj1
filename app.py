@@ -36,11 +36,14 @@ migrate = Migrate(app, db)
 #----------------------------------------------------------------------------#
 
 def format_datetime(value, format='medium'):
-    date = dateutil.parser.parse(value)
-    if format == 'full':
-        format = "EEEE MMMM, d, y 'at' h:mma"
-    elif format == 'medium':
-        format = "EE MM, dd, y h:mma"
+    if isinstance(value, str):    
+        date = dateutil.parser.parse(value)
+        if format == 'full':
+            format = "EEEE MMMM, d, y 'at' h:mma"
+        elif format == 'medium':
+            format = "EE MM, dd, y h:mma"
+    else:
+        date = value
     return babel.dates.format_datetime(date, format, locale='en')
 
 
@@ -121,23 +124,25 @@ def search_venues():
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
-    try:
-        data = Venue.query.filter_by(id=venue_id).all()[0].__dict__
-        past_shows = []
-        upcoming_shows = []
-        for show in data.shows:
-            if (show.start_time > datetime.now()):
-                upcoming_shows.append(show)
-            else:
-                past_shows.append(show)
+    # try:
+    shows = db.session.query(Show).join(Venue).filter(Show.venue_id == venue_id).all()
+    data = Venue.query.filter(Venue.id == venue_id).all()[0].__dict__
+    past_shows = []
+    upcoming_shows = []
+    for show in shows:
+        if (show.start_time > datetime.now()):
+            upcoming_shows.append(show)
+        else:
+            past_shows.append(show)
 
-        data['past_shows'] = past_shows
-        data['upcoming_shows'] = upcoming_shows
-        data['past_shows_count'] = len(past_shows)
-        data['upcoming_shows_count'] = len(upcoming_shows)
-        return render_template('pages/show_venue.html', venue=data)
-    except:
-        return abort(400)
+    data['past_shows'] = past_shows
+    data['upcoming_shows'] = upcoming_shows
+    data['past_shows_count'] = len(past_shows)
+    data['upcoming_shows_count'] = len(upcoming_shows)
+    return render_template('pages/show_venue.html', venue=data)
+    # except Exception as e:
+    #     print(e)
+    #     return abort(400)
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -359,24 +364,33 @@ def create_shows():
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
     isError = False
-    try:
-        d = request.form
+    d = ShowForm(request.form)
+    print('out of if')
+    if d.validate():
+        print('hi')
+        try:
+            show = Show()
+            d.populate_obj(show)
+            # print(d.__dict__)
+            db.session.add(show)
+            db.session.commit()
+
+        except:
+            isError = True
+            db.session.rollback()
+            print(sys.exc_info())
+        finally:
+            if not isError:
+                db.session.close()
+                return render_template('pages/home.html')
+            else:
+                flash('Show ' + request.form['venue_id'] + ' Failed to submit!')
+                return abort(400)
+    else:
+        print (d.__dict__)
         show = Show()
         d.populate_obj(show)
-        db.session.add(show)
-        db.session.commit()
-
-    except:
-        isError = True
-        db.session.rollback()
-        print(sys.exc_info())
-    finally:
-        if not isError:
-            db.session.close()
-            return render_template('pages/home.html')
-        else:
-            flash('Show ' + request.form['venue_id'] + ' Failed to submit!')
-            return abort(400)
+        print(show.atrist_id)
     return render_template('pages/home.html')
 
 
