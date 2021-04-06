@@ -157,12 +157,13 @@ def create_venue_form():
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
     isError = False
-    d = VenueForm(request.form)
+    d = VenueForm(request.form, meta={'csrf': False})
     if d.validate():
         try:
             print(d.__dict__)
             venue = Venue()
             d.populate_obj(venue)
+            print(venue.artist_id)
             db.session.add(venue)
             db.session.commit()
 
@@ -210,7 +211,7 @@ def edit_venue_submission(venue_id):
     if venue is None:
         return abort(404)
     
-    form = VenueForm(request.form)    
+    form = VenueForm(request.form, meta={'csrf': False})    
     if form.validate():
         try:
             form.populate_obj(venue)
@@ -245,11 +246,11 @@ def search_artists():
 
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
-    artist = Artist.query.filter_by(id = artist_id).all()[0]
-    data = artist.__dict__
+    shows = db.session.query(Show).join(Artist).filter(Show.atrist_id == artist_id).all()
+    data = Artist.query.filter(Artist.id == artist_id).all()[0].__dict__
     past_shows = []
     upcoming_shows = []
-    for v in artist.shows:
+    for v in shows:
         show = {
             'venue_id': v.Venue.id,
             'vanue_name': v.Venue.name,
@@ -283,7 +284,7 @@ def edit_artist(artist_id):
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
-    form = ArtistForm(request.form)
+    form = ArtistForm(request.form, meta={'csrf': False})
     if form.validate():
         try:
             artist = Artist.query.filter_by(id=artist_id).first()
@@ -311,7 +312,7 @@ def create_artist_form():
 @app.route('/artists/create', methods=['POST'])
 def create_artist_submission():
     isError = False
-    d = ArtistForm(request.form)
+    d = ArtistForm(request.form, meta={'csrf': False})
     if d.validate():
         try:
             artist = Artist()
@@ -364,14 +365,11 @@ def create_shows():
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
     isError = False
-    d = ShowForm(request.form)
-    print('out of if')
+    d = ShowForm(request.form, meta={'csrf': False})
     if d.validate():
-        print('hi')
         try:
             show = Show()
             d.populate_obj(show)
-            # print(d.__dict__)
             db.session.add(show)
             db.session.commit()
 
@@ -387,10 +385,13 @@ def create_show_submission():
                 flash('Show ' + request.form['venue_id'] + ' Failed to submit!')
                 return abort(400)
     else:
-        print (d.__dict__)
         show = Show()
         d.populate_obj(show)
-        print(show.atrist_id)
+        message = []
+        for field, err in d.errors.items():
+            message.append(field + ' ' + '|'.join(err))
+            print('Errors ' + str(message))
+
     return render_template('pages/home.html')
 
 
