@@ -19,7 +19,7 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean)
     website_link = db.Column(db.String(500))
     artists = db.relationship('Show', back_populates='Venue')
-    shows = db.relationship('Show', backref=db.backref('venue'), lazy="joined", viewonly=True)
+    shows = db.relationship('Show', backref=db.backref('venue'), lazy="joined")
     # DONE: implement any missing fields, as a database migration using Flask-Migrate
 
 
@@ -39,7 +39,7 @@ class Artist(db.Model):
     website_link = db.Column(db.String(500))
     genres = db.Column(db.ARRAY(db.String), nullable = False)
     venues = db.relationship('Show', back_populates='Artist')
-    shows = db.relationship('Show', backref=db.backref('artist'), lazy="joined", viewonly=True)
+    shows = db.relationship('Show', backref=db.backref('artist'), lazy="joined")
     # DONE: implement any missing fields, as a database migration using Flask-Migrate
 
 
@@ -50,6 +50,6 @@ class Show(db.Model):
     venue_id = db.Column(db.Integer(), db.ForeignKey(
         "Venue.id"), primary_key=True)
     start_time = db.Column(db.DateTime(), primary_key=True)
-    Artist = db.relationship("Artist", back_populates="venues")
-    Venue = db.relationship("Venue", back_populates="artists")
+    Artist = db.relationship("Artist", back_populates="venues", viewonly=True)
+    Venue = db.relationship("Venue", back_populates="artists", viewonly=True)
     # DONE Implement Show and Artist models, and complete all model relationships and properties, as a database migration.

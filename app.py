@@ -167,10 +167,11 @@ def create_venue_submission():
             db.session.add(venue)
             db.session.commit()
 
-        except:
+        except Exception as e:
             isError = True
             db.session.rollback()
             print(sys.exc_info())
+            print(e)
 
         finally:
             if not isError:
@@ -215,7 +216,6 @@ def edit_venue_submission(venue_id):
     if form.validate():
         try:
             form.populate_obj(venue)
-            # venue.seeking_talent = True if form.data['seeking_talent'] == 'y' else False
             db.session.commit()
             db.session.close()
             return redirect(url_for('show_venue', venue_id=venue_id))
